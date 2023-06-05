@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     color: colors.lightgrey,
     fontSize: 32,
     fontWeight: "bold",
-    letterSpacing: 7,
+    letterSpacing: 8,
   },
 
   map: {
