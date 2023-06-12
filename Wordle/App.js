@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { StatusBar, StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Button } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Modal, Button, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from "expo-status-bar";
 import SplashScreen from './SplashScreen';
 import Keyboard from './src/components/Keyboard';
-import { colors, CLEAR, ENTER } from './src/constants';
+import { colors, CLEAR, ENTER, colorsToEmoji } from './src/constants';
+import * as Clipboard from "expo-clipboard";
 
 const NUMBER_OF_TRIES = 6;
 
@@ -11,9 +13,56 @@ const copyArray = (arr) => {
   return [...arr.map((rows) => [...rows])];
 };
 
-const App = () => {
-  const word = "hello";
-  const letters = word.split('');
+const getDayOfMonth = () => {
+  const now = new Date();
+  return now.getDate();
+};
+
+export default function App() {
+  const dayOfMonth = getDayOfMonth();
+
+  const words = [
+    "cloud",
+    "debug",
+    "route",
+    "error",
+    "logic",
+    "patch",
+    "index",
+    "pixel",
+    "query",
+    "array",
+    "block",
+    "input",
+    "parse",
+    "regex",
+    "scope",
+    "shell",
+    "table",
+    "audit",
+    "click",
+    "fetch",
+    "print",
+    "proxy",
+    "check",
+    "click",
+    "logic",
+    "learn",
+    "print",
+    "drive",
+    "turbo",
+    "speed",
+    "wheel",
+    "trunk",
+    "brake",
+    "tires",
+    "shift",
+    "truck",
+  ];
+
+  const word = words[dayOfMonth - 1];
+  const letters = word ? word.split('') : [];
+  
 
   const [showSplash, setShowSplash] = useState(true);
   const [showAboutModal, setShowAboutModal] = useState(false);
@@ -22,14 +71,60 @@ const App = () => {
   );
   const [curRow, setCurRow] = useState(0);
   const [curCol, setCurCol] = useState(0);
+  const [gameState, setGameState] = useState("playing");
+
+  useEffect(() => {
+    if (curRow > 0) {
+      checkGameState();
+    }
+  }, [curRow]);
+
+
+  const checkGameState = () => {
+    if (checkIfWon() && gameState !== "won") {
+      Alert.alert("Brawo", "Wygrales!", [
+        { text: "Udostepnij", onPress: shareScore },
+      ]);
+      setGameState("won");
+    } else if (checkIfLost() && gameState !== "lost") {
+      Alert.alert("Przegrales", "Sprobuj ponownie jutro!");
+      setGameState("lost");
+    }
+  };
+
+  const shareScore = () => {
+    const textMap = rows
+      .map((row, i) =>
+        row.map((cell, j) => colorsToEmoji[getCellBGColor(i, j)]).join("")
+      )
+      .filter((row) => row)
+      .join("\n");
+    const textToShare = `Wordle \n${textMap}`;
+    Clipboard.setStringAsync(textToShare);
+    Alert.alert("Skopiowane", "Pochwal sie wygrana na social mediach!");
+  };
+
+  const checkIfWon = () => {
+    const row = rows[curRow - 1];
+
+    return row.every((letter, i) => letter === letters[i]);
+  };
+
+  const checkIfLost = () => {
+    return !checkIfWon() && curRow === rows.length;
+  };
 
   const onKeyPressed = (key) => {
+    if (gameState !== "playing") {
+      return;
+    }
+
     const updatedRows = copyArray(rows);
 
     if (key === CLEAR) {
       const prevCol = curCol - 1;
       if (prevCol >= 0) {
-        updatedRows[curRow][curCol] = "";
+        updatedRows[curRow][prevCol] = "";
         setRows(updatedRows);
         setCurCol(prevCol);
       }
@@ -41,6 +136,7 @@ const App = () => {
         setCurRow(curRow + 1);
         setCurCol(0);
       }
+
       return;
     }
 
@@ -57,6 +153,7 @@ const App = () => {
 
   const getCellBGColor = (row, col) => {
     const letter = rows[row][col];
+
     if (row >= curRow) {
       return colors.black;
     }
@@ -81,6 +178,8 @@ const App = () => {
     }, 3000);
   }, []);
 
+ 
+
   const handleAboutPress = () => {
     setShowAboutModal(true);
   };
@@ -93,6 +192,12 @@ const App = () => {
   const handleCloseModal = () => {
     setShowAboutModal(false);
   };
+  
+  const greenCaps = getAllLettersWithColor(colors.primary);
+  const yellowCaps = getAllLettersWithColor(colors.secondary);
+  const greyCaps = getAllLettersWithColor(colors.darkgrey);
+
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,32 +219,34 @@ const App = () => {
           </View>
 
           <ScrollView style={styles.map}>
-            {rows.map((row, i) => (
-              <View key={`row-${i}`} style={styles.row}>
-                {row.map((letter, j) => (
-                  <View
-                    key={`cell-${i}-${j}`}
-                    style={[
-                      styles.cell,
-                      {
-                        borderColor: isCellActive(i, j) ? colors.grey : colors.darkgrey,
-                        backgroundColor: getCellBGColor(i, j),
-                      },
-                    ]}
-                  >
-                    <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
-                  </View>
-                ))}
+        {rows.map((row, i) => (
+          <View key={`row-${i}`} style={styles.row}>
+            {row.map((letter, j) => (
+              <View
+                key={`cell-${i}-${j}`}
+                style={[
+                  styles.cell,
+                  {
+                    borderColor: isCellActive(i, j)
+                      ? colors.grey
+                      : colors.darkgrey,
+                    backgroundColor: getCellBGColor(i, j),
+                  },
+                ]}
+              >
+                <Text style={styles.cellText}>{letter.toUpperCase()}</Text>
               </View>
             ))}
-          </ScrollView>
+          </View>
+        ))}
+      </ScrollView>
 
           <Keyboard
-            onKeyPressed={onKeyPressed}
-            greenCaps={getAllLettersWithColor(colors.primary)}
-            yellowCaps={getAllLettersWithColor(colors.secondary)}
-            greyCaps={getAllLettersWithColor(colors.darkgrey)}
-          />
+        onKeyPressed={onKeyPressed}
+        greenCaps={greenCaps} // ['a', 'b']
+        yellowCaps={yellowCaps}
+        greyCaps={greyCaps}
+      />
 
           <Modal visible={showAboutModal} animationType="slide">
             <View style={styles.modalContainer}>
@@ -150,7 +257,8 @@ const App = () => {
               Autorzy:
               Paweł Socha,
               Kacper Mucha,
-              Robert Sternal  
+              Robert Sternal 
+              dzisiejsze slowo to : {word} ( tylko dla developerow ;) )
               </Text>
               <Button title="Close" onPress={handleCloseModal} />
             </View>
@@ -165,6 +273,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.black,
+    alignItems: "center",
   },
   header: {
     flexDirection: 'row',
@@ -177,7 +286,7 @@ const styles = StyleSheet.create({
     color: colors.lightgrey,
     fontSize: 32,
     fontWeight: "bold",
-    letterSpacing: 8,
+    letterSpacing: 7,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -195,24 +304,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   map: {
-    flex: 1,
+    alignSelf: "stretch",
     marginVertical: 20,
-    alignSelf: 'stretch',
   },
   row: {
-    alignSelf: 'stretch',
-    flexDirection: 'row',
-    justifyContent: 'center',
+    alignSelf: "stretch",
+    flexDirection: "row",
+    justifyContent: "center",
   },
   cell: {
     borderWidth: 3,
     borderColor: colors.darkgrey,
     flex: 1,
-    margin: 3,
-    aspectRatio: 1,
     maxWidth: 70,
-    justifyContent: 'center',
-    alignItems: 'center',
+    aspectRatio: 1,
+    margin: 3,
+    justifyContent: "center",
+    alignItems: "center",
   },
   cellText: {
     color: colors.lightgrey,
@@ -240,4 +348,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+
