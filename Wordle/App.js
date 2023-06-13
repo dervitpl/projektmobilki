@@ -162,7 +162,7 @@ export default function App() {
     const letter = rows[row][col];
 
     if (row >= curRow) {
-      return colors.black;
+      return darkMode ? colors.black : colors.white;
     }
     if (letter === letters[col]) {
       return colors.primary;
@@ -170,7 +170,7 @@ export default function App() {
     if (letters.includes(letter)) {
       return colors.secondary;
     }
-    return colors.darkgrey;
+    return darkMode ? colors.darkgrey : colors.lightgrey;
   };
 
   const getAllLettersWithColor = (color) => {
